@@ -23,4 +23,4 @@ A browser window will appear showing the contents of the current directory.  Cli
 
 
 
-Please check [write_up.md](./write_up.md) for more details
+Please check [write_up.pdf](./write_up.pdf) for more details

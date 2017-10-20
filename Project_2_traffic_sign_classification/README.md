@@ -24,6 +24,7 @@ I used the numpy library to calculate and summary the traffic signs data set:
 * The number of unique classes/labels in the data set is 43
 
 Some sample images:
+
 ![sample_image](./examples/sample_image.png)
 
 In addition, I used the matplotlib to visulize the distribution of each class in training set, validition set, and testing set. The figure is shown below:
@@ -42,7 +43,7 @@ Here is an example of a traffic sign image before and after grayscaling.
 
 ![raw_image](./examples/raw_image.png)
 
-![grayscale](.examples/grayscale.png)
+![](./examples/grayscale.png)
 
 As a last step, I normalized the image data because scale image pixel value into (-1, 1) can speed up the convergence of deep neural netwok. What's more, some noise can be removed by subtracting mean value. 
 

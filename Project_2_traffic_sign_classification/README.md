@@ -24,11 +24,11 @@ I used the numpy library to calculate and summary the traffic signs data set:
 * The number of unique classes/labels in the data set is 43
 
 Some sample images:
-![sample_image](/home/zhans/Documents/Self-Driving-Car/Project_2_traffic_sign_classification/examples/sample_image.png)
+![sample_image](./examples/sample_image.png)
 
 In addition, I used the matplotlib to visulize the distribution of each class in training set, validition set, and testing set. The figure is shown below:
 
-![distribution](/home/zhans/Documents/Self-Driving-Car/Project_2_traffic_sign_classification/examples/distribution.png)
+![distribution](./examples/distribution.png)
 
 From the distribution figure, we can see the unbalanced problem among different image classes, but fortunately, the distribution patterns are very similar between training set and testing set.
 
@@ -40,9 +40,9 @@ As a first step, I decided to convert the images to grayscale because most of tr
 
 Here is an example of a traffic sign image before and after grayscaling.
 
-![raw_image](/home/zhans/Documents/Self-Driving-Car/Project_2_traffic_sign_classification/examples/raw_image.png)
+![raw_image](./examples/raw_image.png)
 
-![grayscale](/home/zhans/Documents/Self-Driving-Car/Project_2_traffic_sign_classification/examples/grayscale.png)
+![grayscale](.examples/grayscale.png)
 
 As a last step, I normalized the image data because scale image pixel value into (-1, 1) can speed up the convergence of deep neural netwok. What's more, some noise can be removed by subtracting mean value. 
 
@@ -50,7 +50,7 @@ Firstly, I calcuated the image mean (RGB 3 channel) value among training set: [ 
 
 Here is an example of a traffic sign image after normalization:
 
-![normalized_gray](/home/zhans/Documents/Self-Driving-Car/Project_2_traffic_sign_classification/examples/normalized_gray.png)
+![normalized_gray](./examples/normalized_gray.png)
 
 ### 2. Model Architecture
 
@@ -104,7 +104,7 @@ To approach this accuracy, an iterative approach was chosen:
 
 Here are five German traffic signs that I found on the web:
 
-![other_images](/home/zhans/Documents/Self-Driving-Car/Project_2_traffic_sign_classification/examples/other_images.png)
+![other_images](./examples/other_images.png)
 
 The third image might be difficult to classify because of the disortion after resize and low image resolution.
 
@@ -187,7 +187,7 @@ However, for 3rd image, the model misclassified the Slippery road image to  Righ
 
 Visulize the softmax probability from the CNN's output:
 
-![new_test_softmax](/home/zhans/Documents/Self-Driving-Car/Project_2_traffic_sign_classification/examples/new_test_softmax.png)
+![new_test_softmax](./examples/new_test_softmax.png)
 
 ## Visualizing the Neural Network
 
@@ -195,12 +195,12 @@ With going deeper of convolutional layer, the feature maps scale up and become m
 
 - Conv 1 feature maps
 
-  ![conv1_vis](/home/zhans/Documents/Self-Driving-Car/Project_2_traffic_sign_classification/examples/conv1_vis.png)
+  ![conv1_vis](./examples/conv1_vis.png)
 
 - Conv2 feature maps
 
-  ![conv2_vis](/home/zhans/Documents/Self-Driving-Car/Project_2_traffic_sign_classification/examples/conv2_vis.png)
+  ![conv2_vis](./examples/conv2_vis.png)
 
 - Conv3 feature maps
 
-  ![conv3_vis](/home/zhans/Documents/Self-Driving-Car/Project_2_traffic_sign_classification/examples/conv3_vis.png)
+  ![conv3_vis](./examples/conv3_vis.png)

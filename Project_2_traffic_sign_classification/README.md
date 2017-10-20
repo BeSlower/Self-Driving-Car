@@ -24,13 +24,14 @@ I used the numpy library to calculate and summary the traffic signs data set:
 * The number of unique classes/labels in the data set is 43
 
 Some sample images:
-
+<div align=center>
 ![sample_image](./examples/sample_image.png)
+</div>
 
 In addition, I used the matplotlib to visulize the distribution of each class in training set, validition set, and testing set. The figure is shown below:
-
+<div align=center>
 ![distribution](./examples/distribution.png)
-
+</div>
 From the distribution figure, we can see the unbalanced problem among different image classes, but fortunately, the distribution patterns are very similar between training set and testing set.
 
 ## Design and Test a Model Architecture
@@ -40,18 +41,21 @@ From the distribution figure, we can see the unbalanced problem among different 
 As a first step, I decided to convert the images to grayscale because most of traffic signs don't need color to be distinguished. The shape and edge pattern are the strongest feature to do recognition. 
 
 Here is an example of a traffic sign image before and after grayscaling.
-
+<div align=center>
 ![raw_image](./examples/raw_image.png)
-
+</div>
+<div align=center>
 ![](./examples/grayscale.png)
+</div>
 
 As a last step, I normalized the image data because scale image pixel value into (-1, 1) can speed up the convergence of deep neural netwok. What's more, some noise can be removed by subtracting mean value. 
 
 Firstly, I calcuated the image mean (RGB 3 channel) value among training set: [ 86.69812012  79.49594116  81.83870697], so grayscale mean is  82.6775894167. And then images are normalized by equation:  (img - grayscale Mean) / 255
 
 Here is an example of a traffic sign image after normalization:
-
+<div align=center>
 ![normalized_gray](./examples/normalized_gray.png)
+</div>
 
 ### 2. Model Architecture
 
@@ -104,8 +108,9 @@ To approach this accuracy, an iterative approach was chosen:
 ### 1. New Test Images
 
 Here are five German traffic signs that I found on the web:
-
+<div align=center>
 ![other_images](./examples/other_images.png)
+</div>
 
 The third image might be difficult to classify because of the disortion after resize and low image resolution.
 
@@ -187,8 +192,9 @@ However, for 3rd image, the model misclassified the Slippery road image to  Righ
 |      0      |                   -                   |
 
 Visulize the softmax probability from the CNN's output:
-
+<div align=center>
 ![new_test_softmax](./examples/new_test_softmax.png)
+</div>
 
 ## Visualizing the Neural Network
 
@@ -196,12 +202,18 @@ With going deeper of convolutional layer, the feature maps scale up and become m
 
 - Conv 1 feature maps
 
+<div align=center>
   ![conv1_vis](./examples/conv1_vis.png)
+</div>
 
 - Conv2 feature maps
 
+<div align=center>
   ![conv2_vis](./examples/conv2_vis.png)
+</div>
 
 - Conv3 feature maps
 
+<div align=center>
   ![conv3_vis](./examples/conv3_vis.png)
+</div>

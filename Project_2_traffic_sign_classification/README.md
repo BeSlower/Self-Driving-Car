@@ -47,7 +47,7 @@ Here is an example of a traffic sign image before and after grayscaling.
 
 As a last step, I normalized the image data because scale image pixel value into (-1, 1) can speed up the convergence of deep neural netwok. What's more, some noise can be removed by subtracting mean value. 
 
-Firstly, I calcuated the image mean (RGB 3 channel) value among training set: [ 86.69812012  79.49594116  81.83870697], so grayscale mean is  82.6775894167. And then images are normalized by equation: $ (img - grayscale Mean) / 255$
+Firstly, I calcuated the image mean (RGB 3 channel) value among training set: [ 86.69812012  79.49594116  81.83870697], so grayscale mean is  82.6775894167. And then images are normalized by equation:  (img - grayscale Mean) / 255
 
 Here is an example of a traffic sign image after normalization:
 
@@ -101,7 +101,7 @@ To approach this accuracy, an iterative approach was chosen:
 
 ## Test a Model on New Images
 
-####1. New Test Images
+### 1. New Test Images
 
 Here are five German traffic signs that I found on the web:
 
@@ -135,7 +135,7 @@ Here are the results of the prediction:
 
 The model was able to correctly guess 4 of the 5 traffic signs, which gives an accuracy of 80%. This compares favorably to the accuracy on the test set of ...
 
-####3. Output Probability Analysis
+### 3. Output Probability Analysis
 
 The code for making predictions on my final model is located in the 11th cell of the Ipython notebook. 
 

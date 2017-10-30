@@ -28,7 +28,7 @@ The model.py file contains the code for training and saving the convolution neur
 
 ## Data Collection
 
-To capture good driving behavior, I totally recorded 9 trips with different scenarios.
+To capture good driving behavior, I totally recorded 9 trips for trap one with different scenarios.
 
 | Trip ID |     Scenario      | Number of frames |
 | :-----: | :---------------: | :--------------: |
@@ -45,26 +45,33 @@ To capture good driving behavior, I totally recorded 9 trips with different scen
 
 
 
-To capture good driving behavior, I first recorded two laps on track one using center lane driving. Here is an example image of center lane driving:
+To capture good driving behavior, I first recorded three laps on track one using center lane driving with anti-clockwise. Here is an example image of center lane driving:
 
-![alt text][image2]
+![cener](examples/cener.jpg)
 
-I then recorded the vehicle recovering from the left side and right sides of the road back to center so that the vehicle would learn to .... These images show what a recovery looks like starting from ... :
 
-![alt text][image3]
-![alt text][image4]
-![alt text][image5]
 
-Then I repeated this process on track two in order to get more data points.
+I then recorded the vehicle recovering from the left side and right sides of the road back to center so that the vehicle would learn to drive back to the center of road when it almost runs out of road. These images show what a recovery looks like :
 
-To augment the data sat, I also flipped images and angles thinking that this would ... For example, here is an image that has then been flipped:
+![recover1](examples/recover1.jpg)
 
-![alt text][image6]
-![alt text][image7]
+![recover2](examples/recover2.jpg)
 
-Etc ....
+![recover3](examples/recover3.jpg)
 
-After the collection process, I had X number of data points. I then preprocessed this data by ...
+![recover4](examples/recover4.jpg)
+
+Then I repeated this process on track 2, 5, 7 in order to get more data points. I also record driving on center lane with counter-clockwise for tip 3, 6, 9.
+
+To augment the data sat, I also flipped images and change color domain from RGB to YUV. For example, here is an image that has then been flipped and after changing to YUV domain:
+
+![raw](examples/raw.jpg)
+
+![flipped](examples/flipped.jpg)
+
+![yuv](examples/yuv.jpg)
+
+
 
 ## Model Architecture
 

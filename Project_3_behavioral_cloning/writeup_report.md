@@ -75,7 +75,7 @@ To augment the data sat, I also flipped images and change color domain from RGB 
 
 ## Model Architecture
 
-####1. Solution Design Approach
+### 1. Solution Design Approach
 
 The overall strategy for deriving a model architecture was to build a convolutional neural network system to  extract image freature and map it into a streering angle value. Basically, the whole system is a regression algorithm.
 
@@ -87,7 +87,7 @@ Firstly, I used trip0 data provided by Udacity. In order to gauge how well the m
 
 At the end of the process, the vehicle is able to drive autonomously around the track without leaving the road.
 
-####2. Final Model Architecture
+### 2. Final Model Architecture
 
 The final model architecture is composed by one normalization layer, five convolutional layers, and three fully-connected layers with dropout (0.5 keep probability). The architecture is visualized as following figure:
 

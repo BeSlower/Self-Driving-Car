@@ -16,8 +16,6 @@ mtx = data['mtx']
 dist = data['dist']
 
 img_undist = cv2.undistort(img, mtx, dist, None, mtx)
-plt.imshow(img_undist)
-plt.show()
 
 # --------------------------
 #   Perspective Transform
@@ -39,13 +37,12 @@ Minv = cv2.getPerspectiveTransform(dst, raw_points)
 top_down = cv2.warpPerspective(img_undist, M, img_size)
 
 # plot
-f, (ax1, ax2) = plt.subplots(1, 2, figsize=(24, 9))
+f, (ax1, ax2) = plt.subplots(1, 2, figsize=(24, 5))
 f.tight_layout()
 ax1.imshow(img)
 ax1.set_title('Original Image', fontsize=10)
 ax2.imshow(top_down)
 ax2.set_title('Undistorted and Warped Image', fontsize=10)
-plt.subplots_adjust(left=0., right=1, top=0.9, bottom=0.)
 plt.show()
 
 # store perspective parameters

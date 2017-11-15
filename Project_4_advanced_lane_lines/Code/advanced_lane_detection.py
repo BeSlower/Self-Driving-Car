@@ -1,7 +1,58 @@
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
 import pickle
+
+class Line():
+    def __init__(self, buffer_length=10):
+        # was the line detected in the last iteration?
+        self.detected = False
+        # x values of the last n fits of the line
+        self.recent_xfitted = []
+        # average x values of the fitted line over the last n iterations
+        self.bestx = None
+        # polynomial coefficients averaged over the last n iterations
+        self.best_fit = None
+
+        # polynomial coefficients for the most recent fit
+        self.current_fit = [np.array(False)]
+
+        # radius of curvature of the line in some units
+        self.radius_of_curvature = None
+
+        # distance in meters of vehicle center from the line
+        self.line_base_pos = None
+
+        # difference in fit coefficients between last and new fits
+        self.diffs = np.array([0, 0, 0], dtype='float')
+        # x values for detected line pixels
+        self.allx = None
+        # y values for detected line pixels
+        self.ally = None
+
+    def update(self, new_x, new_y, coefficient, detected_flag):
+        self.detected = detected_flag
+        self.recent_xfitted.append(new_x)
+        self.current_fit = coefficient
+        self.allx = new_x
+        self.ally = new_y
+        self.radius_of_curvature = self.curvature_estimate(y_eval=720)
+
+    def curvature_estimate(self, y_eval):
+
+        # Define conversions in x and y from pixels space to meters
+        ym_per_pix = 30 / 720  # meters per pixel in y dimension
+        xm_per_pix = 3.7 / 700  # meters per pixel in x dimension
+
+        # Fit new polynomials to x,y in world space
+        fit_cr = np.polyfit(self.ally * ym_per_pix, self.allx * xm_per_pix, 2)
+
+        # Calculate the new radii of curvature
+        curverad = ((1 + (2 * fit_cr[0] * y_eval * ym_per_pix + fit_cr[1]) ** 2) ** 1.5) / np.absolute(
+            2 * fit_cr[0])
+
+        return curverad
 
 def load_params(calibration_params, top_down_params):
 
@@ -19,7 +70,7 @@ def load_params(calibration_params, top_down_params):
 
     return mtx, dist, M, Minv
 
-def preprocess(img_undist):
+def preprocess(img_undist, verbose=False):
     '''
         Thresholding the input image to generate a binary image by
         combining color and gradient information
@@ -53,23 +104,43 @@ def preprocess(img_undist):
     combine_binary = np.zeros_like(gray)
     combine_binary[(sxbinary == 1) | (s_channel_binary == 1)] = 1
 
-    # plot
-    # f, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(40, 40))
-    # ax1.set_title('undistorted image')
-    # ax1.imshow(img_undist)
-    #
-    # ax2.set_title('color thresholding')
-    # ax2.imshow(s_channel_binary, cmap='gray')
-    #
-    # ax3.set_title('x gradient thresholding')
-    # ax3.imshow(sxbinary, cmap='gray')
-    #
-    # ax4.set_title('combined binary')
-    # ax4.imshow(combine_binary, cmap='gray')
+    if verbose:
+        # plot
+        f, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(40, 40))
+        ax1.set_title('undistorted image')
+        ax1.imshow(img_undist)
+
+        ax2.set_title('color thresholding')
+        ax2.imshow(s_channel_binary, cmap='gray')
+
+        ax3.set_title('x gradient thresholding')
+        ax3.imshow(sxbinary, cmap='gray')
+
+        ax4.set_title('combined binary')
+        ax4.imshow(combine_binary, cmap='gray')
 
     return combine_binary
 
-def poly_fit(binary_TD):
+def sanity_check(left_line, right_line):
+    diff_curvature = np.absolute(left_line.radius_of_curvature - right_line.radius_of_curvature)
+
+    horizaontal_distance = []
+    for y_value in range(img_size[1]):
+        left_point_x = left_line.current_fit[0] * y_value ** 2 + left_line.current_fit[1] * y_value + \
+                       left_line.current_fit[2]
+        right_point_x = right_line.current_fit[0] * y_value ** 2 + right_line.current_fit[1] * y_value + \
+                        right_line.current_fit[2]
+        horizaontal_distance.append(right_point_x - left_point_x)
+    distance_mean = np.mean(horizaontal_distance)
+    distance_std = np.std(horizaontal_distance)
+
+    if (diff_curvature < 1000) and (distance_mean * 3.7 / 700 > 1.5) and (distance_std * 3.7 / 700 < 0.5):
+        ret = True
+    else:
+        ret = False
+    return ret
+
+def poly_fit(binary_TD, verbose=False):
     '''
         fit a polynomial by given warped binary image
         :param binary_TD: binary top-down view image
@@ -146,32 +217,35 @@ def poly_fit(binary_TD):
     left_fit = np.polyfit(lefty, leftx, 2)
     right_fit = np.polyfit(righty, rightx, 2)
 
-    # generate x and y values for plotting
-    ploty = np.linspace(0, binary_TD.shape[0]-1, binary_TD.shape[0])
-    left_fitx = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
-    right_fitx = right_fit[0]*ploty**2 + right_fit[1]*ploty + right_fit[2]
+    left_line.update(leftx, lefty, left_fit, detected_flag=True)
+    right_line.update(rightx, righty, right_fit, detected_flag=True)
 
-    out_img[nonzeroy[left_lane_inds], nonzerox[left_lane_inds]] = [255, 0, 0]
-    out_img[nonzeroy[right_lane_inds], nonzerox[right_lane_inds]] = [0, 0, 255]
-    #plt.figure('Sliding Windows Polyfit')
-    # plt.imshow(out_img)
-    # plt.plot(left_fitx, ploty, color='yellow')
-    # plt.plot(right_fitx, ploty, color='yellow')
-    # plt.xlim(0, 1280)
-    # plt.ylim(720, 0)
+    if verbose:
+        # generate x and y values for plotting
+        ploty = np.linspace(0, binary_TD.shape[0]-1, binary_TD.shape[0])
+        left_fitx = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
+        right_fitx = right_fit[0]*ploty**2 + right_fit[1]*ploty + right_fit[2]
 
-    # fit result
-    result = {'left_line': {'x': leftx, 'y': lefty, 'fit': left_fit},
-            'right_line': {'x': rightx, 'y': righty, 'fit': right_fit}}
+        out_img[nonzeroy[left_lane_inds], nonzerox[left_lane_inds]] = [255, 0, 0]
+        out_img[nonzeroy[right_lane_inds], nonzerox[right_lane_inds]] = [0, 0, 255]
+        plt.figure('Sliding Windows Polyfit')
+        plt.imshow(out_img)
+        plt.plot(left_fitx, ploty, color='yellow')
+        plt.plot(right_fitx, ploty, color='yellow')
+        plt.xlim(0, 1280)
+        plt.ylim(720, 0)
 
-    return result
+    return out_img, left_line, right_line
 
-def fast_poly_fit(binary_TD, left_fit, right_fit):
+def fast_poly_fit(binary_TD, left_line, right_line, verbose=False):
     '''
         Assume you now have a new warped binary image
         from the next frame of video (also called "binary_TD")
         It's now much easier to find line pixels
     '''
+    left_fit = left_line.current_fit
+    right_fit = right_line.current_fit
+
     nonzero = binary_TD.nonzero()
     nonzeroy = np.array(nonzero[0])
     nonzerox = np.array(nonzero[1])
@@ -190,60 +264,46 @@ def fast_poly_fit(binary_TD, left_fit, right_fit):
     # Fit a second order polynomial to each
     left_fit = np.polyfit(lefty, leftx, 2)
     right_fit = np.polyfit(righty, rightx, 2)
-    # Generate x and y values for plotting
-    ploty = np.linspace(0, binary_TD.shape[0] - 1, binary_TD.shape[0])
-    left_fitx = left_fit[0] * ploty ** 2 + left_fit[1] * ploty + left_fit[2]
-    right_fitx = right_fit[0] * ploty ** 2 + right_fit[1] * ploty + right_fit[2]
 
-    # Create an image to draw on and an image to show the selection window
-    out_img = np.dstack((binary_TD, binary_TD, binary_TD)) * 255
-    window_img = np.zeros_like(out_img)
-    # Color in left and right line pixels
-    out_img[nonzeroy[left_lane_inds], nonzerox[left_lane_inds]] = [255, 0, 0]
-    out_img[nonzeroy[right_lane_inds], nonzerox[right_lane_inds]] = [0, 0, 255]
+    left_line.update(leftx, lefty, left_fit, detected_flag=True)
+    right_line.update(rightx, righty, right_fit, detected_flag=True)
 
-    # Generate a polygon to illustrate the search window area
-    # And recast the x and y points into usable format for cv2.fillPoly()
-    left_line_window1 = np.array([np.transpose(np.vstack([left_fitx - margin, ploty]))])
-    left_line_window2 = np.array([np.flipud(np.transpose(np.vstack([left_fitx + margin,
-                                                                    ploty])))])
-    left_line_pts = np.hstack((left_line_window1, left_line_window2))
-    right_line_window1 = np.array([np.transpose(np.vstack([right_fitx - margin, ploty]))])
-    right_line_window2 = np.array([np.flipud(np.transpose(np.vstack([right_fitx + margin,
-                                                                     ploty])))])
-    right_line_pts = np.hstack((right_line_window1, right_line_window2))
+    if verbose:
+        # Generate x and y values for plotting
+        ploty = np.linspace(0, binary_TD.shape[0] - 1, binary_TD.shape[0])
+        left_fitx = left_fit[0] * ploty ** 2 + left_fit[1] * ploty + left_fit[2]
+        right_fitx = right_fit[0] * ploty ** 2 + right_fit[1] * ploty + right_fit[2]
 
-    # Draw the lane onto the warped blank image
-    # cv2.fillPoly(window_img, np.int_([left_line_pts]), (0, 255, 0))
-    # cv2.fillPoly(window_img, np.int_([right_line_pts]), (0, 255, 0))
-    # result = cv2.addWeighted(out_img, 1, window_img, 0.3, 0)
-    # plt.figure("Fast Polyfit Search Aera")
-    # plt.imshow(result)
-    # plt.plot(left_fitx, ploty, color='yellow')
-    # plt.plot(right_fitx, ploty, color='yellow')
-    # plt.xlim(0, 1280)
-    # plt.ylim(720, 0)
+        # Create an image to draw on and an image to show the selection window
+        out_img = np.dstack((binary_TD, binary_TD, binary_TD)) * 255
+        window_img = np.zeros_like(out_img)
+        # Color in left and right line pixels
+        out_img[nonzeroy[left_lane_inds], nonzerox[left_lane_inds]] = [255, 0, 0]
+        out_img[nonzeroy[right_lane_inds], nonzerox[right_lane_inds]] = [0, 0, 255]
 
-    # fit result
-    result = {'left_line': {'x': leftx, 'y': lefty, 'fit': left_fit},
-            'right_line': {'x': rightx, 'y': righty, 'fit': right_fit}}
+        # Generate a polygon to illustrate the search window area
+        # And recast the x and y points into usable format for cv2.fillPoly()
+        left_line_window1 = np.array([np.transpose(np.vstack([left_fitx - margin, ploty]))])
+        left_line_window2 = np.array([np.flipud(np.transpose(np.vstack([left_fitx + margin,
+                                                                        ploty])))])
+        left_line_pts = np.hstack((left_line_window1, left_line_window2))
+        right_line_window1 = np.array([np.transpose(np.vstack([right_fitx - margin, ploty]))])
+        right_line_window2 = np.array([np.flipud(np.transpose(np.vstack([right_fitx + margin,
+                                                                         ploty])))])
+        right_line_pts = np.hstack((right_line_window1, right_line_window2))
 
-    return result
+        # Draw the lane onto the warped blank image
+        cv2.fillPoly(window_img, np.int_([left_line_pts]), (0, 255, 0))
+        cv2.fillPoly(window_img, np.int_([right_line_pts]), (0, 255, 0))
+        result = cv2.addWeighted(out_img, 1, window_img, 0.3, 0)
+        plt.figure("Fast Polyfit Search Aera")
+        plt.imshow(result)
+        plt.plot(left_fitx, ploty, color='yellow')
+        plt.plot(right_fitx, ploty, color='yellow')
+        plt.xlim(0, 1280)
+        plt.ylim(720, 0)
 
-def curvature_estimate(y, x, y_eval):
-
-    # Define conversions in x and y from pixels space to meters
-    ym_per_pix = 30 / 720  # meters per pixel in y dimension
-    xm_per_pix = 3.7 / 700  # meters per pixel in x dimension
-
-    # Fit new polynomials to x,y in world space
-    fit_cr = np.polyfit(y * ym_per_pix, x * xm_per_pix, 2)
-
-    # Calculate the new radii of curvature
-    curverad = ((1 + (2 * fit_cr[0] * y_eval * ym_per_pix + fit_cr[1]) ** 2) ** 1.5) / np.absolute(
-        2 * fit_cr[0])
-
-    return curverad
+    return result, left_line, right_line
 
 def remap(binary_TD, left_fit, right_fit, Minv):
 
@@ -271,68 +331,97 @@ def remap(binary_TD, left_fit, right_fit, Minv):
 
     return newwarp
 
-def main():
+def visulization(result, binary, binary_TD, disp_img, left_line, right_line, offset):
+    h, w = result.shape[:2]
 
+    thumb_ratio = 0.2
+    thumb_h, thumb_w = int(thumb_ratio * h), int(thumb_ratio * w)
+
+    off_x, off_y = 20, 15
+
+    # add a gray rectangle to highlight the upper area
+    mask = result.copy()
+    mask = cv2.rectangle(mask, pt1=(0, 0), pt2=(w, thumb_h + 2 * off_y), color=(0, 0, 0), thickness=cv2.FILLED)
+    result = cv2.addWeighted(src1=mask, alpha=0.2, src2=result, beta=0.8, gamma=0)
+
+    # add thumbnail of binary image
+    thumb_binary = cv2.resize(binary, dsize=(thumb_w, thumb_h))
+    thumb_binary = np.dstack([thumb_binary, thumb_binary, thumb_binary]) * 255
+    result[off_y:thumb_h + off_y, off_x:off_x + thumb_w, :] = thumb_binary
+
+    # add thumbnail of bird's eye view
+    thumb_birdeye = cv2.resize(binary_TD, dsize=(thumb_w, thumb_h))
+    thumb_birdeye = np.dstack([thumb_birdeye, thumb_birdeye, thumb_birdeye]) * 255
+    result[off_y:thumb_h + off_y, 2 * off_x + thumb_w:2 * (off_x + thumb_w), :] = thumb_birdeye
+
+    thumb_disp_img = cv2.resize(disp_img, dsize=(thumb_w, thumb_h))
+    result[off_y:thumb_h + off_y, 3 * off_x + 2 * thumb_w:3 * (off_x + thumb_w), :] = thumb_disp_img
+
+    # add text (curvature and offset info) on the upper right of the blend
+    mean_curvature_meter = np.mean([left_line.radius_of_curvature, right_line.radius_of_curvature])
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    cv2.putText(result, 'Curvature radius: {:.02f}m'.format(mean_curvature_meter), (860, 60), font, 0.9, (255, 255, 255), 2, cv2.LINE_AA)
+    cv2.putText(result, 'Offset from center: {:.02f}m'.format(offset), (860, 130), font, 0.9, (255, 255, 255), 2, cv2.LINE_AA)
+
+    return result
+
+
+def process_pipeline(frame, keep_state=True):
+
+    global left_line, right_line, processed_frame
+
+    img_undist = cv2.undistort(frame, mtx, dist, None, mtx)
+    binary = preprocess(img_undist)
+    binary_TD = cv2.warpPerspective(binary, M, img_size)
+
+    # fit polynomial lines
+    if processed_frame == 0 or not sanity_check(left_line, right_line):
+        #print('/nre-polyfiting ...')
+        disp_img, left_line, right_line = poly_fit(binary_TD, verbose=True)
+    else:
+        disp_img, left_line, right_line = fast_poly_fit(binary_TD, left_line, right_line, verbose=True)
+
+    # Center of two lines
+    y_bottom = binary_TD.shape[0]
+    left_point_x = left_line.current_fit[0]*y_bottom**2 + left_line.current_fit[1]*y_bottom + left_line.current_fit[2]
+    right_point_x = right_line.current_fit[0]*y_bottom**2 + right_line.current_fit[1]*y_bottom + right_line.current_fit[2]
+    lane_center = np.float32((right_point_x + left_point_x) / 2)
+
+    # Offset of vehicle's center
+    offset = (binary_TD.shape[1]/2 - lane_center) * (3.7 / 700)  # time meters per pixel in x axis
+
+    newwarp = remap(binary_TD, left_line.current_fit, right_line.current_fit, Minv)
+    result = cv2.addWeighted(img_undist, 1, newwarp, 0.3, 0)
+    visul_result = visulization(result, binary, binary_TD, disp_img, left_line, right_line, offset)
+    processed_frame += 1
+
+    return visul_result
+
+if __name__ == '__main__':
+
+    # load calibration and perspective transform parameters
+    mtx, dist, M, Minv = load_params('calibration_params.pkl', 'top_down_params.pkl')
+    img_size = (1280, 720)
+
+    # Mode selection
     mode = 'video'
     filename = '../project_video.mp4'
 
+    # Define two lines
+    left_line = Line()
+    right_line = Line()
+
+    # Lane detection
     if mode == 'video':
-        # load calibration and top-down transform parameters
-        mtx, dist, M, Minv = load_params('calibration_params.pkl', 'top_down_params.pkl')
-
         # video
+        processed_frame = 0
+
         from moviepy.editor import VideoFileClip
-        clip = VideoFileClip(filename)
-
-        for frame_idx, img in enumerate(clip.iter_frames()):
-            # Capture frame-by-frame
-            if frame_idx == 0:
-                img_size = (img.shape[1], img.shape[0])
-
-            img_undist = cv2.undistort(img, mtx, dist, None, mtx)
-            binary = preprocess(img_undist)
-            binary_TD = cv2.warpPerspective(binary, M, img_size)
-
-            # fit polynomial lines
-            if frame_idx == 0:
-                fit_result = poly_fit(binary_TD)
-            else:
-                fit_result = fast_poly_fit(binary_TD, left_fit, right_fit)
-
-            # Measure curvature radius
-            left_fit = fit_result['left_line']['fit']
-            right_fit = fit_result['right_line']['fit']
-
-            left_curverad = curvature_estimate(fit_result['left_line']['y'], fit_result['left_line']['x'],
-                                               binary_TD.shape[0])
-            # right_curverad = curvature_estimate(fit_result['left_line']['y'], fit_result['left_line']['x'],
-            #                                     binary_TD.shape[0])
-
-            # Center of two lines
-            y_bottom = binary_TD.shape[0]
-            left_point_x = left_fit[0]*y_bottom**2 + left_fit[1]*y_bottom + left_fit[2]
-            right_point_x = right_fit[0]*y_bottom**2 + right_fit[1]*y_bottom + right_fit[2]
-            lane_center = np.float32((right_point_x + left_point_x) / 2)
-
-            # Offset
-            offset = (binary_TD.shape[1]/2 - lane_center) * (3.7 / 700)  # time meters per pixel in x axis
-
-            newwarp = remap(binary_TD, left_fit, right_fit, Minv)
-
-            result = cv2.addWeighted(img_undist, 1, newwarp, 0.3, 0)
-            result = cv2.cvtColor(result, cv2.COLOR_RGB2BGR)
-
-            str1 = 'Lane Curvature: ' + str(round(left_curverad, 2)) + 'm'
-            str2 = 'Center Offset: ' + str(round(offset, 2)) + 'm'
-
-            cv2.putText(result, str(str1), (50, 50), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 255, 0), 2)
-            cv2.putText(result, str(str2), (50, 100), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 255, 0), 2)
-            cv2.imshow('result', result)
-            cv2.waitKey(1)
+        clip = VideoFileClip(filename).fl_image(process_pipeline)
+        clip.write_videofile('project_video_output.mp4', audio=False)
 
     elif mode == 'image':
-
-        img = cv2.imread('../test_images/test3.jpg')
+        img = mpimg.imread(filename)
         img_size = (img.shape[1], img.shape[0])
 
         # load calibration and top-down transform parameters
@@ -344,25 +433,21 @@ def main():
         binary_TD = cv2.warpPerspective(binary, M, img_size)
 
         # fit polynomial lines
-        fit_result = poly_fit(binary_TD)
+        fit_result, left_line, right_line = poly_fit(binary_TD, verbose=True)
+        fit_result, left_line, right_line = fast_poly_fit(binary_TD, left_line, right_line, verbose=True)
+
+        newwarp = remap(binary_TD, left_line.current_fit, right_line.current_fit, Minv)
+        result = cv2.addWeighted(img_undist, 1, newwarp, 0.3, 0)
 
         # Measure curvature radius
-        left_curverad = curvature_estimate(fit_result['left_line']['y'], fit_result['left_line']['x'], binary_TD.shape[0])
-        right_curverad = curvature_estimate(fit_result['left_line']['y'], fit_result['left_line']['x'], binary_TD.shape[0])
-
-        # fast fit a polynomial line for the next frame
-        # left_fit, right_fit, left_curverad, right_curverad = fast_poly_fit(binary_TD, left_fit, right_fit)
+        left_curverad = left_line.radius_of_curvature
+        right_curverad = right_line.radius_of_curvature
 
         # Now our radius of curvature is in meters
         print(left_curverad, 'm', right_curverad, 'm')
-
-        plt.figure()
-        plt.title('binary top-down')
-        plt.imshow(binary_TD, cmap='gray')
+        plt.figure('newwarp')
+        plt.imshow(result)
         plt.show()
 
     else:
         print("Mode selected error...")
-
-if __name__ == '__main__':
-    main()

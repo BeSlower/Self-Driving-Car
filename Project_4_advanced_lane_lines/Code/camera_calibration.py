@@ -9,7 +9,7 @@ calibration_params = 'calibration_params.pkl'
 path = os.path.join(os.getcwd(), calibration_params)
 
 import glob
-images = glob.glob('../camera_cal/calibration*.jpg')
+images = glob.glob('../camera_cal/calibration1.jpg')
 
 if not os.path.exists(path):
     nrows = 6

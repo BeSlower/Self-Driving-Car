@@ -1,8 +1,6 @@
 # Advanced Lane Detection
 
-```
 [![Udacity - Self-Driving Car NanoDegree](https://s3.amazonaws.com/udacity-sdc/github/shield-carnd.svg)](http://www.udacity.com/drive)
-```
 
 ## Objective
 
@@ -63,13 +61,13 @@ The transform and inverse transform parameters were stored into `./Code/top_down
 
   Using sliding windows to search line pixels, and then fit polynomial lines based on all collected line pixels.
 
-  ![img](file:///home/zhans/Documents/Self-Driving-Car/Project_4_advanced_lane_lines/examples/sliding_windows_polyfit.png?lastModify=1510775463)
+  ![img](./examples/sliding_windows_polyfit.png?lastModify=1510775463)
 
 - Fast Polynomial Fit by Previous Detected Lines
 
   The processing speed can be boosted by searching line pixels based on a fixed margin aera of lines generated from previous frame. Just like the figure below:
 
-![img](file:///home/zhans/Documents/Self-Driving-Car/Project_4_advanced_lane_lines/examples/fast_polyfit_search_aera.png?lastModify=1510775567)
+![img](./examples/fast_polyfit_search_aera.png?lastModify=1510775567)
 
 - Sanity Check
 

@@ -7,37 +7,8 @@ from matplotlib import pyplot as plt
 from keras.models import Sequential
 from keras.layers import Cropping2D, Lambda, Convolution2D, Dense, Flatten, Dropout
 
-def extract_data(data_path):
-    '''
-    extract image and measurements from driving log .csv file
-    :param data_path: the path of data folder
-    :return: images BGR image arrays
-             measurements steering angle vectors
-    '''
-
-    images = []
-    measurements = []
-
-    trips = os.listdir(data_path)
-    for trip in trips:
-        lines = []
-        trip_path = os.path.join(data_path, trip)
-        logfile_path = os.path.join(trip_path, 'driving_log.csv')
-        with open(logfile_path) as csvfile:
-            reader = csv.reader(csvfile)
-            for line in reader:
-                lines.append(line)
-
-        for line in lines[1:]:
-            source_path = line[0]
-            file_name = source_path.split('/')[-1]
-            image_path = os.path.join(trip_path, 'IMG', file_name)
-            image = cv2.imread(image_path)
-            images.append(image)
-            measurement = float(line[3])
-            measurements.append(measurement)
-        print("{} has {} images".format(trip, len(lines)))
-    return images, measurements
+from sklearn.model_selection import train_test_split
+from sklearn.utils import shuffle
 
 def augmentation(images, steering_angles):
     # flip image and measurement
@@ -48,10 +19,28 @@ def augmentation(images, steering_angles):
     steering_angles = steering_angles + steering_angles_flipped
 
     # change BGR to YUV
-    #images_augment = [cv2.cvtColor(img, cv2.COLOR_BGR2YUV) for img in images]
+    images_augment = [cv2.cvtColor(img, cv2.COLOR_BGR2YUV) for img in images]
     return np.array(images_augment), np.array(steering_angles)
 
-def CnnModel(input_shape):
+def generator(samples, batch_size=32):
+    num_samples = len(samples)
+    while 1: # Loop forever so the generator never terminates
+        shuffle(samples)
+        for offset in range(0, num_samples, batch_size):
+            batch_samples = samples[offset:offset+batch_size]
+
+            images = []
+            angles = []
+            for batch_sample in batch_samples:
+                name = './IMG/'+batch_sample[0].split('/')[-1]
+                center_image = cv2.imread(name)
+                center_angle = float(batch_sample[3])
+                images.append(center_image)
+                angles.append(center_angle)
+            X_train, y_train = augmentation(images, angles)
+            yield shuffle(X_train, y_train)
+
+def CnnModel(input_shape=(160, 320, 3)):
     model = Sequential()
     # ROI extraction
     model.add(Cropping2D(cropping=((70, 25), (0, 0)), input_shape=input_shape))
@@ -85,18 +74,23 @@ def CnnModel(input_shape):
 
 def main():
 
-    # data preprocessing and augmentation
-    images, steering_angles = extract_data('./data')
-    x_train, y_train = augmentation(images, steering_angles)
+    samples = []
+    with open('./data/driving_log.csv') as csvfile:
+        reader = csv.reader(csvfile)
+        for line in reader:
+            samples.append(line)
 
-    print("Training set: %d" % int(x_train.shape[0] * 0.8))
-    print("Validation set: %d" % int(x_train.shape[0] * 0.2))
+    train_samples, validation_samples = train_test_split(samples, test_size=0.2)
+    
+    # compile and train the model using the generator function
+    train_generator = generator(train_samples, batch_size=32)
+    validation_generator = generator(validation_samples, batch_size=32)
 
     # model define and training
-    model = CnnModel(x_train[0].shape)
+    model = CnnModel()
     model.compile(loss='mse', optimizer='adam')
-    history_object = model.fit(x_train, y_train, validation_split=0.2, shuffle=True, nb_epoch=5, verbose=1)
-
+    history_object = model.fit_generator(train_generator, samples_per_epoch=len(train_samples), validation_data=validation_generator, nb_val_samples=len(validation_samples), nb_epoch=3)
+    
     # save model
     model.save('model.h5')
     print("model saved")

@@ -91,7 +91,7 @@ Here are some example images:
 
 ![test2](./examples/test2.png)
 
-![test3](/Users/zhanshi/Documents/Programming/Self-Driving-Car/Project_5_vehicle_detection/examples/test3.png)
+![test3](./examples/test3.png)
 
 In order to get more reliable detection result, I set the threshold of classification score to 0.7, which can reduce some false positive.
 

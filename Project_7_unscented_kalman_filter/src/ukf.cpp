@@ -69,6 +69,28 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
   Complete this function! Make sure you switch between lidar and radar
   measurements.
   */
+  if(!is_initialized_) {
+    // initialization
+    
+    return;
+  } 
+
+  double delta_t = (measurement_pack.timestamp_ - time_us_) / 1000000.0;
+  // prediction
+  Prediction(delta_t);
+
+  // update
+  if(measurement_pack.senor_type_ == MeasurementPackage::RADAR) {
+    // radar updates
+    UpdateRadar(measurement_pack);
+  } else {
+    // lidar updates
+    UpdateLidar(measurement_pack);
+  }
+
+  // print the output
+  cout << "x_ = " << ekf_.x_ << endl;
+  cout << "P_ = " << ekf_.P_ << endl;
 }
 
 /**

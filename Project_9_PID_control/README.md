@@ -4,22 +4,17 @@ This project implenments a PID contorller for keeping the vehicle around the tra
 
 ## Overview 
 
-| <img src="./img/no_control.gif" alt="Overview" width="40%">                              <img src="./img/p_control.gif" alt="Overview" width="40%"> |      |
-| ---------------------------------------- | :--: |
-| <img src="./img/pi_control.gif" alt="Overview" width="40%">                             <img src="./img/pid_control.gif" alt="Overview" width="40%"> |      |
+| <img src="./img/no_control.gif" alt="Overview" width="60%"> | <img src="./img/p_control.gif" alt="Overview" width="60%"> |
+| ---------------------------------------: | :--------------------------------------- |
+| <img src="./img/pi_control.gif" alt="Overview" width="60%"> | <img src="./img/pid_control.gif" alt="Overview" width="60%"> |
 
+#### What is a PID controller
 
+A **proportional-intergral-detrivative controller** (PID controller) is a control loop feedback mechanism widely used in industrial control systems and a variety of other applications requiring continuously modulated control. A PID controller continuously calculates an error value $e(t)$ as the difference between a desired setpoint and a measured process variable and applies a correction based on **proportional**, **integral**, and **derivative** terms (denoted **P**, **I**, and **D** respectively).  [Wiki]
 
+#### PID Parameters
 
-####What is a PID controller
-
-A **proportional-intergral-detrivative controller** (PID controller) is a control loop feedback mechanism widely used in industrial control systems and a variety of other applications requiring continuously modulated control. A PID controller continuously calculates an error value $e(t)​$ as the difference between a desired setpoint and a measured process variable and applies a correction based on **proportional**, **integral**, and **derivative** terms (denoted **P**, **I**, and **D** respectively). 
-
-​																		-- from wiki
-
-####PID Parameters
-
-$K_{p}, K_{i}, K_{d}$ denote the coefficients for the proportinal, intergral, and derivative terms respectively.
+***Kp, Ki, Kd*** denote the coefficients for the proportinal, intergral, and derivative terms respectively.
 
 - P is proportional to the current value of the error
 - I accounts for the past values of error and integrates them over time
@@ -27,7 +22,7 @@ $K_{p}, K_{i}, K_{d}$ denote the coefficients for the proportinal, intergral, an
 
 In this project, two PID controllers are defined in order to control steering value and throttle respectively. Parameters have been manually tuned by the performance of driving behavior in the simulator. 
 
-##Dependencies
+## Dependencies
 
 * cmake >= 3.5
  * All OSes: [click here for installation instructions](https://cmake.org/install/)

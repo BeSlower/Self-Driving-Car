@@ -28,7 +28,7 @@ VectorXd Tools::CalculateRMSE(const vector<VectorXd> &estimations,
 
 	// calculate RMSE value
 
-	for(int idx=0; idx<est_size; idx++) {
+	for(int idx=0; idx < est_size; idx++) {
 		VectorXd residual = estimations[idx] - ground_truth[idx];
 		residual = residual.array() * residual.array();
 		rmse += residual ;
@@ -51,18 +51,21 @@ MatrixXd Tools::CalculateJacobian(const VectorXd& x_state) {
 	float py = x_state(1);
 	float vx = x_state(2);
 	float vy = x_state(3);
+	
+	// Pre-compute some term which recur in the Jacobian
+	float c1 = px * px + py * py;
+	float c2 = sqrt(c1);
+	float c3 = c1 * c2;
 
-	float square = px*px + py*py;
-	float sq_root = sqrt(square);
-
-	if(fabs(square) < 0.0001) {
-		cout<<"Error: divided by zero"<<endl;
+	if (std::abs(c1) < 0.0001) {
+		std::cout << "Error in CalculateJacobian. Division by zero." << std::endl;
 		return Hj;
 	}
 
-	Hj << px/sq_root, py/sq_root, 0, 0,
-		  -py/square, px/square, 0, 0,
-		  py*(vx*py-vy*px)/(square*sq_root), px*(vy*px-vx*py)/(square*sq_root), px/sq_root, py/sq_root;
+	// compute Jacobian matrix
+	Hj << (px / c2),				(py / c2),					0,			0,
+		-(py / c1),					(px / c1),					0,			0,
+		py * (vx*py - vy*px) / c3,	px * (vy*px - vx*py) / c3,	px / c2,	py / c2;
 
 	return Hj;
 }

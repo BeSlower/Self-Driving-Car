@@ -6,8 +6,8 @@
 using CppAD::AD;
 
 // TODO: Set the timestep length and duration
-size_t N = 0;
-double dt = 0;
+size_t N = 25;
+double dt = 0.05;
 
 // This value assumes the model presented in the classroom is used.
 //
@@ -21,6 +21,17 @@ double dt = 0;
 // This is the length from front to CoG that has a similar radius.
 const double Lf = 2.67;
 
+// Indexes on the var vector
+size_t x_start      = 0;
+size_t y_start      = x_start       + N;
+size_t psi_start    = y_start       + N;
+size_t v_start      = psi_start     + N;
+size_t cte_start    = v_start       + N;
+size_t epsi_start   = cte_start     + N;
+size_t delta_start  = epsi_start    + N;
+size_t a_start      = delta_start   + N - 1;
+
+
 class FG_eval {
  public:
   // Fitted polynomial coefficients
@@ -33,6 +44,80 @@ class FG_eval {
     // `fg` a vector of the cost constraints, `vars` is a vector of variable values (state & actuators)
     // NOTE: You'll probably go back and forth between this function and
     // the Solver function below.
+
+      fg[0] = 0;
+
+      // Define weights for different terms of objective
+      const double cte_weight = 2000;
+      const double epsi_weight = 2000;
+      const double v_weight = 100;
+      const double actuator_cost_weight = 10;
+      const double change_steer_cost_weight = 100000;
+      const double change_accel_cost_weight = 10000;
+
+      // Objective term 1: Keep close to reference values
+      for (size_t t = 0; t < N; ++t) {
+          fg[0] += cte_weight  * CppAD::pow(vars[cte_start  + t] - ref_cte,  2);
+          fg[0] += epsi_weight * CppAD::pow(vars[epsi_start + t] - ref_epsi, 2);
+          fg[0] += v_weight    * CppAD::pow(vars[v_start    + t] - ref_v,    2);
+      }
+
+      // Objective term 2:  Avoid to actuate, as much as possible
+      for (size_t t = 0; t < N - 1; ++t) {
+          fg[0] += actuator_cost_weight * CppAD::pow(vars[delta_start + t], 2);
+          fg[0] += actuator_cost_weight * CppAD::pow(vars[a_start     + t], 2);
+      }
+
+      // Objective term 3:  Enforce actuators smoothness in change
+      for (size_t t = 0; t < N - 2; ++t) {
+          fg[0] += change_steer_cost_weight * CppAD::pow(vars[delta_start + t + 1] - vars[delta_start + t], 2);
+          fg[0] += change_accel_cost_weight * CppAD::pow(vars[a_start     + t + 1] - vars[a_start     + t], 2);
+      }
+
+      // Initial constraints
+      fg[1 + x_start]     = vars[x_start];
+      fg[1 + y_start]     = vars[y_start];
+      fg[1 + psi_start]   = vars[psi_start];
+      fg[1 + v_start]     = vars[v_start];
+      fg[1 + cte_start]   = vars[cte_start];
+      fg[1 + epsi_start]  = vars[epsi_start];
+
+      for (size_t t = 1; t < N; ++t) {
+
+          // Values at time (t)
+          AD<double> x_0      = vars[x_start    + t - 1];
+          AD<double> y_0      = vars[y_start    + t - 1];
+          AD<double> psi_0    = vars[psi_start  + t - 1];
+          AD<double> v_0      = vars[v_start    + t - 1];
+          AD<double> cte_0    = vars[cte_start  + t - 1];
+          AD<double> epsi_0   = vars[epsi_start + t - 1];
+
+          // Values at time (t+1)
+          AD<double> x_1      = vars[x_start    + t];
+          AD<double> y_1      = vars[y_start    + t];
+          AD<double> psi_1    = vars[psi_start  + t];
+          AD<double> v_1      = vars[v_start    + t];
+          AD<double> cte_1    = vars[cte_start  + t];
+          AD<double> epsi_1   = vars[epsi_start + t];
+
+          AD<double> delta_0  = vars[delta_start + t - 1];
+          AD<double> a_0      = vars[a_start     + t - 1];
+
+          AD<double> f_0 = coeffs[0] + \
+                           coeffs[1] * x_0 + \
+                           coeffs[2] * x_0 * x_0 + \
+                           coeffs[3] * x_0 * x_0 * x_0;
+
+          AD<double> psides_0 = CppAD::atan(coeffs[1] + 2 * coeffs[2] * x_0 + 3 * coeffs[3] * x_0 * x_0);
+
+          // Setup other model constraints
+          fg[1 + x_start + t]     = x_1    - (x_0 + v_0 * CppAD::cos(psi_0) * dt);
+          fg[1 + y_start + t]     = y_1    - (y_0 + v_0 * CppAD::sin(psi_0) * dt);
+          fg[1 + psi_start + t]   = psi_1  - (psi_0 - v_0 * delta_0 / Lf * dt);
+          fg[1 + v_start + t]     = v_1    - (v_0 + a_0 * dt);
+          fg[1 + cte_start + t]   = cte_1  - (f_0 - y_0 + (v_0 * CppAD::sin(epsi_0) * dt));
+          fg[1 + epsi_start + t]  = epsi_1 - (psi_0 - psides_0 - v_0 * delta_0 / Lf * dt);
+      }
   }
 };
 
@@ -52,9 +137,9 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   // element vector and there are 10 timesteps. The number of variables is:
   //
   // 4 * 10 + 2 * 9
-  size_t n_vars = 0;
+  size_t n_vars = 6 * N + 2 * (N-1);
   // TODO: Set the number of constraints
-  size_t n_constraints = 0;
+  size_t n_constraints = 6 * N;
 
   // Initial value of the independent variables.
   // SHOULD BE 0 besides initial state.
@@ -66,6 +151,26 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   Dvector vars_lowerbound(n_vars);
   Dvector vars_upperbound(n_vars);
   // TODO: Set lower and upper limits for variables.
+  // Set limits for non-actuators
+  for (size_t i = 0; i < delta_start; ++i) {
+      vars_lowerbound[i] = - numeric_limits<float>::max();
+      vars_upperbound[i] = + numeric_limits<float>::max();
+  }
+
+  // Set upper and lower constraints for steering
+  double max_degree   = 25;
+  double max_radians  = max_degree * M_PI / 180;
+  for (int i = delta_start; i < a_start; i++) {
+      vars_lowerbound[i] = - max_radians;
+      vars_upperbound[i] = + max_radians;
+  }
+
+  // Set upper and lower constraints for acceleration
+  double max_acceleration_value  = 1.0;
+  for (int i = a_start; i < n_vars; i++) {
+      vars_lowerbound[i] = - max_acceleration_value;
+      vars_upperbound[i] = + max_acceleration_value;
+  }
 
   // Lower and upper limits for the constraints
   // Should be 0 besides initial state.

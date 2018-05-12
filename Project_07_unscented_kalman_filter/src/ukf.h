@@ -64,9 +64,21 @@ public:
   ///* Augmented state dimension
   int n_aug_;
 
+  ///* Number of sigma points
+  int n_sigma_points_;
+
   ///* Sigma point spreading parameter
   double lambda_;
 
+  ///* the current NIS for radar
+  double NIS_radar_;
+
+  ///* the current NIS for laser
+  double NIS_laser_;
+
+  ///* Measurement covariance matrices
+  MatrixXd R_lidar_;
+  MatrixXd R_radar_;
 
   /**
    * Constructor
@@ -83,6 +95,8 @@ public:
    * @param meas_package The latest measurement data of either radar or laser
    */
   void ProcessMeasurement(MeasurementPackage meas_package);
+
+  MatrixXd PredictSigmaPoints(double dt);
 
   /**
    * Prediction Predicts sigma points, the state, and the state covariance
@@ -101,7 +115,10 @@ public:
    * Updates the state and the state covariance matrix using a radar measurement
    * @param meas_package The measurement at k+1
    */
+  void normalize_between_minus_PI_and_PI(double& phi);
+
   void UpdateRadar(MeasurementPackage meas_package);
+
 };
 
 #endif /* UKF_H */

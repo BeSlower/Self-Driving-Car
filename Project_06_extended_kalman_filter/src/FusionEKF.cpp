@@ -94,7 +94,7 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
     cout << "Initial EKF: " << endl;
     ekf_.x_ = VectorXd(4);
 
-    if (measurement_pack.SensorType == MeasurementPackage::RADAR) {
+    if (measurement_pack.sensor_type_ == MeasurementPackage::RADAR) {
       /**
       Convert radar from polar to cartesian coordinates and initialize state.
       */
@@ -109,7 +109,7 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
       ekf_.x_(3) = rho_dot * sin(theta);
 
     }
-    else if (measurement_pack.SensorType == MeasurementPackage::LASER) {
+    else if (measurement_pack.sensor_type_ == MeasurementPackage::LASER) {
       /**
       Initialize state.
       */

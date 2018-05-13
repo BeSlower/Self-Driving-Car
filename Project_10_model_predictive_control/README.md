@@ -3,7 +3,7 @@ This project implenments a Model Predictive Controller for keeping the car on th
 
 ### Overview
 
-![mpc](/home/zhans/Documents/.Self-Driving-Car/Project_10_model_predictive_control/mpc.gif)
+![mpc](mpc.gif)
 
 **Model predictive control (MPC)** is an advanced method of process control which relies on dynamic models of the process. Differently from previously implemented PID controller, MPC controller has the ability to anticipate future events and can take control actions accordingly. Indeed, future time steps are taking into account while optimizing current time slot.
 
